@@ -2,6 +2,8 @@ from timeit import default_timer as timer
 import requests
 from pathlib import Path
 from tqdm.auto import tqdm
+import torch
+from torch import nn
 
 def train_time(start: float, end: float, device: torch.device):
   """ Function to compute the total train time
@@ -13,25 +15,29 @@ def train_time(start: float, end: float, device: torch.device):
   The total train time 
   """
   total_time = end - start
-  print(total_time)
+  print(f"Took {total_time} seconds on device {device}")
   return total_time
 
-if Path("./helper_functions.py").is_file():
-  print("helper_functions.py found skipping download...")
-else:
-  request = requests.get("https://raw.githubusercontent.com/mrdbourke/pytorch-deep-learning/refs/heads/main/helper_functions.py")
-  print("Downloading helper_functions.py")
-  with open("helper_functions.py", "wb") as f:
-    f.write(request.content)
+def accuracy_fn(y_true, y_pred):
+    """Calculates accuracy between truth labels and predictions.
 
-from helper_functions import accuracy_fn
+    Args:
+        y_true (torch.Tensor): Truth labels for predictions.
+        y_pred (torch.Tensor): Predictions to be compared to predictions.
+
+    Returns:
+        [torch.float]: Accuracy value between y_true and y_pred, e.g. 78.45
+    """
+    correct = torch.eq(y_true, y_pred).sum().item()
+    acc = (correct / len(y_pred)) * 100
+    return acc
 
 def train_step(model: nn.Module, 
                train_dataloader: torch.utils.data.DataLoader,
                loss_fn: nn.Module,
                optimizer: torch.optim.Optimizer,
                accuracy_fn,
-               device: torch.device=device):
+               device: torch.device):
   """ A single epoch of training
   Args: 
   model (nn.Module): The model 
@@ -73,7 +79,7 @@ def test_step(model: nn.Module,
               test_dataloader: torch.utils.data.DataLoader,
               loss_fn: nn.Module,
               accuracy_fn,
-              device: torch.device=device):
+              device: torch.device):
   """ A single epoch of testing
   Args: 
   model (nn.Module): The model 
@@ -104,7 +110,7 @@ def eval_model(model: nn.Module,
                data_loader: torch.utils.data.DataLoader,
                loss_fn: nn.Module,
                accuracy_fn,
-               device: torch.device=device):
+               device: torch.device):
   """ Evaluates a model 
   Args: 
   model (nn.Module): The model 
@@ -126,11 +132,11 @@ def eval_model(model: nn.Module,
 
       # 2. Calculate Loss
       test_loss = loss_fn(test_pred, y)
-      test_train_loss += test_loss.item()
-      test_train_acc += accuracy_fn(y, test_pred_label)
+      batch_test_loss += test_loss.item()
+      batch_test_acc += accuracy_fn(y, test_pred_label)
 
-  batch_test_acc /= len(test_dataloader)
-  batch_test_loss /= len(test_dataloader)
+  batch_test_acc /= len(data_loader)
+  batch_test_loss /= len(data_loader)
 
   return {"model_name": model.__class__.__name__,
           "model_acc": batch_test_acc,
