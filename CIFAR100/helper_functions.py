@@ -91,7 +91,7 @@ def test_step(model: nn.Module,
   model.eval()
   batch_test_loss, batch_test_acc = 0, 0
   with torch.inference_mode():
-    for X, y in tqdm(test_dataloader):
+    for X, y in tqdm(test_dataloader, desc="Testing in progress"):
       X, y = X.to(device), y.to(device)
       # 1. Forward pass
       test_pred = model(X)
